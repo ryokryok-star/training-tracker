@@ -143,10 +143,10 @@
                 <tr>
                     <th rowspan="2" class="sticky-corner bg-gray-200 text-gray-700 px-3 py-2 border-b-2 border-r border-gray-300 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] text-center align-middle w-24">日付</th>
                     <th colspan="2" class="bg-blue-100 text-blue-800 px-2 py-1 border-b border-r border-gray-300 text-center">ジム</th>
-                    <th colspan="5" class="bg-green-100 text-green-800 px-2 py-1 border-b border-r border-gray-300 text-center">ランニング</th>
+                    <th colspan="4" class="bg-green-100 text-green-800 px-2 py-1 border-b border-r border-gray-300 text-center">ランニング</th>
+                    <th class="bg-yellow-100 text-yellow-800 px-2 py-1 border-b border-r border-gray-300 text-center">その他</th>
                     <th class="bg-cyan-100 text-cyan-800 px-2 py-1 border-b border-r border-gray-300 text-center">スイム</th>
-                    <th class="bg-purple-100 text-purple-800 px-2 py-1 border-b border-r border-gray-300 text-center">整骨院</th>
-                    <th class="bg-gray-200 text-gray-700 px-2 py-1 border-b border-gray-300 text-center">その他</th>
+                    <th class="bg-purple-100 text-purple-800 px-2 py-1 border-b border-gray-300 text-center">整骨院</th>
                 </tr>
                 <tr>
                     <!-- ジム -->
@@ -157,13 +157,12 @@
                     <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-r border-gray-300 text-center text-xs font-normal">実(km)</th>
                     <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-r border-gray-300 text-center text-xs font-normal">低酸素</th>
                     <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-r border-gray-300 text-center text-xs font-normal">トレミ</th>
-                    <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-r border-gray-300 text-center text-xs font-normal">メニュー・所感</th>
+                    <!-- その他 -->
+                    <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-r border-gray-300 text-center text-xs font-normal">備考</th>
                     <!-- スイム -->
                     <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-r border-gray-300 text-center text-xs font-normal">実績</th>
                     <!-- 整骨院 -->
-                    <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-r border-gray-300 text-center text-xs font-normal">内容</th>
-                    <!-- その他 -->
-                    <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-gray-300 text-center text-xs font-normal">特記事項</th>
+                    <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-gray-300 text-center text-xs font-normal">内容</th>
                 </tr>
             </thead>
             <tbody id="table-body" class="bg-white">
@@ -282,8 +281,8 @@
 
                 // 汎用入力クラス
                 const selectClass = `w-full px-1 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputBgClass} text-center appearance-none cursor-pointer`;
-                const numberClass = `w-16 px-1 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputBgClass} text-right`;
-                const textClass = `w-48 px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputBgClass}`;
+                const numberClass = `w-12 px-1 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputBgClass} text-right`;
+                const textClass = `w-72 px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputBgClass}`;
                 const checkClass = `w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer`;
 
                 const tr = document.createElement('tr');
@@ -313,10 +312,10 @@
 
                     <!-- ラン -->
                     <td class="p-1 border-r border-gray-200 text-center">
-                        <input type="number" step="0.1" min="0" data-date="${dateStr}" data-field="runPlan" value="${data.runPlan || ''}" class="${numberClass}" placeholder="0.0">
+                        <input type="number" step="0.1" min="0" data-date="${dateStr}" data-field="runPlan" value="${data.runPlan || ''}" class="${numberClass}">
                     </td>
                     <td class="p-1 border-r border-gray-200 text-center">
-                        <input type="number" step="0.1" min="0" data-date="${dateStr}" data-field="runAct" value="${data.runAct || ''}" class="${numberClass}" placeholder="0.0">
+                        <input type="number" step="0.1" min="0" data-date="${dateStr}" data-field="runAct" value="${data.runAct || ''}" class="${numberClass}">
                     </td>
                     <td class="p-1 border-r border-gray-200 text-center align-middle">
                         <input type="checkbox" data-date="${dateStr}" data-field="hypoxia" ${data.hypoxia ? 'checked' : ''} class="${checkClass}">
@@ -325,7 +324,7 @@
                         <input type="checkbox" data-date="${dateStr}" data-field="treadmill" ${data.treadmill ? 'checked' : ''} class="${checkClass}">
                     </td>
                     <td class="p-1 border-r border-gray-200">
-                        <input type="text" data-date="${dateStr}" data-field="runMemo" value="${data.runMemo || ''}" class="${textClass}" placeholder="メニュー・所感">
+                        <input type="text" data-date="${dateStr}" data-field="runMemo" value="${data.runMemo || ''}" class="${textClass}">
                     </td>
 
                     <!-- スイム -->
@@ -334,17 +333,12 @@
                     </td>
 
                     <!-- 整骨院 -->
-                    <td class="p-1 border-r border-gray-200">
+                    <td class="p-1">
                         <select data-date="${dateStr}" data-field="clinic" class="${selectClass}">
                             <option value="-" ${data.clinic === '-' || !data.clinic ? 'selected' : ''}>-</option>
                             <option value="整骨" ${data.clinic === '整骨' ? 'selected' : ''}>整骨</option>
                             <option value="鍼" ${data.clinic === '鍼' ? 'selected' : ''}>鍼</option>
                         </select>
-                    </td>
-
-                    <!-- その他 -->
-                    <td class="p-1">
-                        <input type="text" data-date="${dateStr}" data-field="memo" value="${data.memo || ''}" class="${textClass}" placeholder="特記事項・体調など">
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -364,24 +358,45 @@
 
             const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
             
+            // 本日の日付と、本日の「実績」入力の有無を取得
+            const todayObj = new Date();
+            const todayStr = `${todayObj.getFullYear()}-${String(todayObj.getMonth() + 1).padStart(2, '0')}-${String(todayObj.getDate()).padStart(2, '0')}`;
+            const todayData = trainingData[todayStr] || {};
+            const hasTodayAct = todayData.runAct !== undefined && todayData.runAct !== '';
+
             for (let d = 1; d <= daysInMonth; d++) {
                 const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-                const data = trainingData[dateStr];
+                const data = trainingData[dateStr] || {};
                 
-                if (data) {
+                // 実績は常に加算
+                runActTotal += parseFloat(data.runAct) || 0;
+                
+                // 「予」（着地見込み）の計算ロジック
+                if (dateStr < todayStr) {
+                    // 昨日まで：実績を加算
+                    runPlanTotal += parseFloat(data.runAct) || 0;
+                } else if (dateStr === todayStr) {
+                    // 本日：実績が入力されていれば実績、なければ予定を加算
+                    if (hasTodayAct) {
+                        runPlanTotal += parseFloat(data.runAct) || 0;
+                    } else {
+                        runPlanTotal += parseFloat(data.runPlan) || 0;
+                    }
+                } else {
+                    // 明日以降：予定を加算
                     runPlanTotal += parseFloat(data.runPlan) || 0;
-                    runActTotal += parseFloat(data.runAct) || 0;
-                    
-                    if (data.gymAct === '◎') gymActDoubleCircle++;
-                    if (data.gymAct === '○') gymActCircle++;
-                    if (data.gymAct === '休') gymActRest++;
-                    
-                    if (data.hypoxia) hypoxiaTotal++;
-                    if (data.treadmill) treadmillTotal++;
-                    if (data.swim) swimTotal++;
-                    
-                    if (data.clinic === '整骨' || data.clinic === '鍼') clinicTotal++;
                 }
+                
+                // その他の集計
+                if (data.gymAct === '◎') gymActDoubleCircle++;
+                if (data.gymAct === '○') gymActCircle++;
+                if (data.gymAct === '休') gymActRest++;
+                
+                if (data.hypoxia) hypoxiaTotal++;
+                if (data.treadmill) treadmillTotal++;
+                if (data.swim) swimTotal++;
+                
+                if (data.clinic === '整骨' || data.clinic === '鍼') clinicTotal++;
             }
 
             // 反映
@@ -400,7 +415,7 @@
         function exportCSV() {
             // BOM追加 (Excelでの文字化け防止)
             const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
-            const headers = ['Date', 'GymPlan', 'GymAct', 'RunPlan_km', 'RunAct_km', 'Hypoxia', 'Treadmill', 'RunMemo', 'SwimAct', 'Clinic', 'Memo'];
+            const headers = ['Date', 'GymPlan', 'GymAct', 'RunPlan_km', 'RunAct_km', 'Hypoxia', 'Treadmill', 'RunMemo', 'SwimAct', 'Clinic'];
             
             let csvRows = [];
             csvRows.push(headers.join(','));
@@ -426,8 +441,7 @@
                     d.treadmill ? '1' : '0',
                     escapeText(d.runMemo),
                     d.swim ? '1' : '0',
-                    d.clinic || '-',
-                    escapeText(d.memo)
+                    d.clinic || '-'
                 ];
                 csvRows.push(row.join(','));
             });
@@ -486,7 +500,6 @@
                             if(cols[7]) trainingData[date].runMemo = cols[7];
                             trainingData[date].swim = (cols[8] === '1' || cols[8].toLowerCase() === 'true');
                             if(cols[9] && cols[9] !== '-') trainingData[date].clinic = cols[9];
-                            if(cols[10]) trainingData[date].memo = cols[10];
 
                             importedCount++;
                         }

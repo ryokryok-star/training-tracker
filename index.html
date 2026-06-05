@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Training Tracker</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* スクロールバーのカスタマイズ（任意） */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8; 
+        }
+
+        /* テーブルの固定列・ヘッダー用クラス */
+        .sticky-col {
+            position: sticky;
+            left: 0;
+            z-index: 10;
+        }
+        .sticky-header {
+            position: sticky;
+            top: 0;
+            z-index: 20;
+        }
+        .sticky-corner {
+            position: sticky;
+            top: 0;
+            left: 0;
+            z-index: 30;
+        }
+
+        /* iOS Safariでのフォーム要素フォーカス時のズーム防止 */
+        input[type="text"],
+        input[type="number"],
+        select,
+        textarea {
+            font-size: 16px !important;
+        }
+
+        /* 数値入力のスピンボタン非表示 */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="bg-blue-700 text-white px-4 py-3 shadow-md flex justify-between items-center shrink-0">
+        <h1 class="text-lg font-bold flex items-center">
+            <i data-lucide="activity" class="w-5 h-5 mr-2"></i>
+            Training Tracker
+        </h1>
+        <div class="flex space-x-2">
+            <button onclick="document.getElementById('csvInput').click()" class="bg-blue-600 hover:bg-blue-500 border border-blue-400 px-3 py-1.5 rounded text-sm flex items-center transition">
+                <i data-lucide="upload" class="w-4 h-4 mr-1"></i> 取込
+            </button>
+            <button onclick="exportCSV()" class="bg-blue-600 hover:bg-blue-500 border border-blue-400 px-3 py-1.5 rounded text-sm flex items-center transition">
+                <i data-lucide="download" class="w-4 h-4 mr-1"></i> 出力
+            </button>
+            <input type="file" id="csvInput" accept=".csv" class="hidden" onchange="importCSV(event)">
+        </div>
+    </header>
+
+    <!-- Dashboard & Controls -->
+    <div class="bg-white px-4 py-3 shadow-sm shrink-0 border-b z-10">
+        <!-- Month Selector -->
+        <div class="flex justify-between items-center mb-3">
+            <button onclick="changeMonth(-1)" class="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition"><i data-lucide="chevron-left"></i></button>
+            <div class="flex items-center space-x-3">
+                <h2 class="text-xl font-bold text-gray-800" id="current-month-display">----年 --月</h2>
+                <button onclick="resetToCurrentMonth()" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-2 py-1 rounded transition">今月</button>
+            </div>
+            <button onclick="changeMonth(1)" class="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition"><i data-lucide="chevron-right"></i></button>
+        </div>
+
+        <!-- Dashboard Summary -->
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-4">
+            <!-- ラン -->
+            <div class="bg-green-50 p-2 rounded border border-green-200">
+                <div class="text-xs text-green-700 font-bold mb-1 flex items-center"><i data-lucide="footprints" class="w-3 h-3 mr-1"></i>ラン合計(km)</div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">予: <span id="dash-run-plan" class="font-semibold text-gray-900">0.0</span></span>
+                    <span class="text-gray-600">実: <span id="dash-run-act" class="font-semibold text-gray-900">0.0</span></span>
+                </div>
+            </div>
+            <!-- ジム -->
+            <div class="bg-blue-50 p-2 rounded border border-blue-200">
+                <div class="text-xs text-blue-700 font-bold mb-1 flex items-center"><i data-lucide="dumbbell" class="w-3 h-3 mr-1"></i>ジム実績(回)</div>
+                <div class="flex justify-between text-sm text-gray-600">
+                    <span>◎: <span id="dash-gym-dc" class="font-semibold text-gray-900">0</span></span>
+                    <span>○: <span id="dash-gym-c" class="font-semibold text-gray-900">0</span></span>
+                    <span>休: <span id="dash-gym-r" class="font-semibold text-gray-900">0</span></span>
+                </div>
+            </div>
+            <!-- ラン オプション -->
+            <div class="bg-yellow-50 p-2 rounded border border-yellow-200 flex flex-col justify-center">
+                <div class="flex justify-between text-sm mb-1">
+                    <span class="text-xs text-yellow-700 font-bold">低酸素:</span>
+                    <span class="font-semibold text-gray-900"><span id="dash-hypoxia">0</span>回</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-xs text-yellow-700 font-bold">トレミ:</span>
+                    <span class="font-semibold text-gray-900"><span id="dash-treadmill">0</span>回</span>
+                </div>
+            </div>
+            <!-- スイム -->
+            <div class="bg-cyan-50 p-2 rounded border border-cyan-200 flex items-center justify-between">
+                <div class="text-xs text-cyan-700 font-bold flex items-center"><i data-lucide="waves" class="w-3 h-3 mr-1"></i>スイム</div>
+                <span class="text-sm font-semibold text-gray-900"><span id="dash-swim">0</span>回</span>
+            </div>
+            <!-- 整骨院 -->
+            <div class="bg-purple-50 p-2 rounded border border-purple-200 flex items-center justify-between">
+                <div class="text-xs text-purple-700 font-bold flex items-center"><i data-lucide="stethoscope" class="w-3 h-3 mr-1"></i>整骨・鍼</div>
+                <span class="text-sm font-semibold text-gray-900"><span id="dash-clinic">0</span>回</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Table Area -->
+    <div class="flex-1 overflow-auto bg-gray-50 relative pb-10">
+        <table class="min-w-max w-full text-sm text-left whitespace-nowrap border-collapse">
+            <thead class="sticky-header">
+                <tr>
+                    <th rowspan="2" class="sticky-corner bg-gray-200 text-gray-700 px-3 py-2 border-b-2 border-r border-gray-300 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] text-center align-middle w-24">日付</th>
+                    <th colspan="2" class="bg-blue-100 text-blue-800 px-2 py-1 border-b border-r border-gray-300 text-center">ジム</th>
+                    <th colspan="5" class="bg-green-100 text-green-800 px-2 py-1 border-b border-r border-gray-300 text-center">ランニング</th>
+                    <th class="bg-cyan-100 text-cyan-800 px-2 py-1 border-b border-r border-gray-300 text-center">スイム</th>
+                    <th class="bg-purple-100 text-purple-800 px-2 py-1 border-b border-r border-gray-300 text-center">整骨院</th>
+                    <th class="bg-gray-200 text-gray-700 px-2 py-1 border-b border-gray-300 text-center">その他</th>
+                </tr>
+                <tr>
+                    <!-- ジム -->
+                    <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-r border-gray-300 text-center text-xs font-normal">予定</th>
+                    <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-r border-gray-300 text-center text-xs font-normal">実績</th>
+                    <!-- ラン -->
+                    <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-r border-gray-300 text-center text-xs font-normal">予(km)</th>
+                    <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-r border-gray-300 text-center text-xs font-normal">実(km)</th>
+                    <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-r border-gray-300 text-center text-xs font-normal">低酸素</th>
+                    <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-r border-gray-300 text-center text-xs font-normal">トレミ</th>
+                    <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-r border-gray-300 text-center text-xs font-normal">メニュー・所感</th>
+                    <!-- スイム -->
+                    <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-r border-gray-300 text-center text-xs font-normal">実績</th>
+                    <!-- 整骨院 -->
+                    <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-r border-gray-300 text-center text-xs font-normal">内容</th>
+                    <!-- その他 -->
+                    <th class="bg-gray-100 text-gray-600 px-2 py-1 border-b-2 border-gray-300 text-center text-xs font-normal">特記事項</th>
+                </tr>
+            </thead>
+            <tbody id="table-body" class="bg-white">
+                <!-- JavaScriptで動的生成 -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        // --- 状態管理 ---
+        let currentDate = new Date();
+        let currentYear = currentDate.getFullYear();
+        let currentMonth = currentDate.getMonth(); // 0-11
+        
+        // LocalStorageからデータを取得
+        let trainingData = JSON.parse(localStorage.getItem('trainingData')) || {};
+
+        // --- 初期化 ---
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            updateMonthDisplay();
+            renderTable();
+            renderDashboard();
+
+            // イベント委譲で入力変更を監視
+            document.getElementById('table-body').addEventListener('change', handleInputChange);
+            document.getElementById('table-body').addEventListener('input', handleInputChange); // Text/Numberの即時反映用
+        });
+
+        // --- UI更新関数 ---
+        function updateMonthDisplay() {
+            document.getElementById('current-month-display').textContent = `${currentYear}年 ${currentMonth + 1}月`;
+        }
+
+        function changeMonth(offset) {
+            currentMonth += offset;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            } else if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            updateMonthDisplay();
+            renderTable();
+            renderDashboard();
+        }
+
+        function resetToCurrentMonth() {
+            const now = new Date();
+            currentYear = now.getFullYear();
+            currentMonth = now.getMonth();
+            updateMonthDisplay();
+            renderTable();
+            renderDashboard();
+        }
+
+        // --- データ操作 ---
+        function saveData() {
+            localStorage.setItem('trainingData', JSON.stringify(trainingData));
+            renderDashboard(); // 保存のたびにダッシュボード更新
+        }
+
+        function handleInputChange(e) {
+            const target = e.target;
+            if (target.dataset.date && target.dataset.field) {
+                const date = target.dataset.date;
+                const field = target.dataset.field;
+                let value = target.value;
+                
+                if (target.type === 'checkbox') {
+                    value = target.checked;
+                }
+
+                if (!trainingData[date]) {
+                    trainingData[date] = {};
+                }
+                trainingData[date][field] = value;
+                saveData();
+            }
+        }
+
+        // --- 描画ロジック ---
+        function renderTable() {
+            const tbody = document.getElementById('table-body');
+            tbody.innerHTML = ''; // クリア
+
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateObj = new Date(currentYear, currentMonth, d);
+                const dayOfWeek = dateObj.getDay();
+                // YYYY-MM-DD フォーマット
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                // 画面表示用 MM/DD(曜)
+                const displayDate = `${String(currentMonth + 1).padStart(2, '0')}/${String(d).padStart(2, '0')}(${dayNames[dayOfWeek]})`;
+                
+                const data = trainingData[dateStr] || {};
+
+                // 土日のスタイリング
+                let rowClass = 'border-b border-gray-200 transition-colors';
+                let dateColClass = 'sticky-col px-3 py-2 border-r border-gray-200 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.1)] font-medium text-center';
+                let inputBgClass = 'bg-transparent';
+
+                if (dayOfWeek === 0) { // 日曜
+                    rowClass += ' bg-red-50 hover:bg-red-100';
+                    dateColClass += ' bg-red-100 text-red-800';
+                } else if (dayOfWeek === 6) { // 土曜
+                    rowClass += ' bg-blue-50 hover:bg-blue-100';
+                    dateColClass += ' bg-blue-100 text-blue-800';
+                } else { // 平日
+                    rowClass += ' bg-white hover:bg-gray-50';
+                    dateColClass += ' bg-white text-gray-800';
+                }
+
+                // 汎用入力クラス
+                const selectClass = `w-full px-1 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputBgClass} text-center appearance-none cursor-pointer`;
+                const numberClass = `w-16 px-1 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputBgClass} text-right`;
+                const textClass = `w-48 px-2 py-1.5 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 ${inputBgClass}`;
+                const checkClass = `w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 cursor-pointer`;
+
+                const tr = document.createElement('tr');
+                tr.className = rowClass;
+
+                // セル生成（テンプレートリテラル）
+                tr.innerHTML = `
+                    <td class="${dateColClass}">${displayDate}</td>
+                    
+                    <!-- ジム -->
+                    <td class="p-1 border-r border-gray-200">
+                        <select data-date="${dateStr}" data-field="gymPlan" class="${selectClass}">
+                            <option value="-" ${data.gymPlan === '-' || !data.gymPlan ? 'selected' : ''}>-</option>
+                            <option value="休" ${data.gymPlan === '休' ? 'selected' : ''}>休</option>
+                            <option value="◎" ${data.gymPlan === '◎' ? 'selected' : ''}>◎</option>
+                            <option value="○" ${data.gymPlan === '○' ? 'selected' : ''}>○</option>
+                        </select>
+                    </td>
+                    <td class="p-1 border-r border-gray-200">
+                        <select data-date="${dateStr}" data-field="gymAct" class="${selectClass}">
+                            <option value="-" ${data.gymAct === '-' || !data.gymAct ? 'selected' : ''}>-</option>
+                            <option value="休" ${data.gymAct === '休' ? 'selected' : ''}>休</option>
+                            <option value="◎" ${data.gymAct === '◎' ? 'selected' : ''}>◎</option>
+                            <option value="○" ${data.gymAct === '○' ? 'selected' : ''}>○</option>
+                        </select>
+                    </td>
+
+                    <!-- ラン -->
+                    <td class="p-1 border-r border-gray-200 text-center">
+                        <input type="number" step="0.1" min="0" data-date="${dateStr}" data-field="runPlan" value="${data.runPlan || ''}" class="${numberClass}" placeholder="0.0">
+                    </td>
+                    <td class="p-1 border-r border-gray-200 text-center">
+                        <input type="number" step="0.1" min="0" data-date="${dateStr}" data-field="runAct" value="${data.runAct || ''}" class="${numberClass}" placeholder="0.0">
+                    </td>
+                    <td class="p-1 border-r border-gray-200 text-center align-middle">
+                        <input type="checkbox" data-date="${dateStr}" data-field="hypoxia" ${data.hypoxia ? 'checked' : ''} class="${checkClass}">
+                    </td>
+                    <td class="p-1 border-r border-gray-200 text-center align-middle">
+                        <input type="checkbox" data-date="${dateStr}" data-field="treadmill" ${data.treadmill ? 'checked' : ''} class="${checkClass}">
+                    </td>
+                    <td class="p-1 border-r border-gray-200">
+                        <input type="text" data-date="${dateStr}" data-field="runMemo" value="${data.runMemo || ''}" class="${textClass}" placeholder="メニュー・所感">
+                    </td>
+
+                    <!-- スイム -->
+                    <td class="p-1 border-r border-gray-200 text-center align-middle">
+                        <input type="checkbox" data-date="${dateStr}" data-field="swim" ${data.swim ? 'checked' : ''} class="${checkClass}">
+                    </td>
+
+                    <!-- 整骨院 -->
+                    <td class="p-1 border-r border-gray-200">
+                        <select data-date="${dateStr}" data-field="clinic" class="${selectClass}">
+                            <option value="-" ${data.clinic === '-' || !data.clinic ? 'selected' : ''}>-</option>
+                            <option value="整骨" ${data.clinic === '整骨' ? 'selected' : ''}>整骨</option>
+                            <option value="鍼" ${data.clinic === '鍼' ? 'selected' : ''}>鍼</option>
+                        </select>
+                    </td>
+
+                    <!-- その他 -->
+                    <td class="p-1">
+                        <input type="text" data-date="${dateStr}" data-field="memo" value="${data.memo || ''}" class="${textClass}" placeholder="特記事項・体調など">
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            }
+        }
+
+        function renderDashboard() {
+            let runPlanTotal = 0;
+            let runActTotal = 0;
+            let gymActDoubleCircle = 0;
+            let gymActCircle = 0;
+            let gymActRest = 0;
+            let hypoxiaTotal = 0;
+            let treadmillTotal = 0;
+            let swimTotal = 0;
+            let clinicTotal = 0;
+
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const data = trainingData[dateStr];
+                
+                if (data) {
+                    runPlanTotal += parseFloat(data.runPlan) || 0;
+                    runActTotal += parseFloat(data.runAct) || 0;
+                    
+                    if (data.gymAct === '◎') gymActDoubleCircle++;
+                    if (data.gymAct === '○') gymActCircle++;
+                    if (data.gymAct === '休') gymActRest++;
+                    
+                    if (data.hypoxia) hypoxiaTotal++;
+                    if (data.treadmill) treadmillTotal++;
+                    if (data.swim) swimTotal++;
+                    
+                    if (data.clinic === '整骨' || data.clinic === '鍼') clinicTotal++;
+                }
+            }
+
+            // 反映
+            document.getElementById('dash-run-plan').textContent = runPlanTotal.toFixed(1);
+            document.getElementById('dash-run-act').textContent = runActTotal.toFixed(1);
+            document.getElementById('dash-gym-dc').textContent = gymActDoubleCircle;
+            document.getElementById('dash-gym-c').textContent = gymActCircle;
+            document.getElementById('dash-gym-r').textContent = gymActRest;
+            document.getElementById('dash-hypoxia').textContent = hypoxiaTotal;
+            document.getElementById('dash-treadmill').textContent = treadmillTotal;
+            document.getElementById('dash-swim').textContent = swimTotal;
+            document.getElementById('dash-clinic').textContent = clinicTotal;
+        }
+
+        // --- CSV エクスポート/インポート ---
+        function exportCSV() {
+            // BOM追加 (Excelでの文字化け防止)
+            const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+            const headers = ['Date', 'GymPlan', 'GymAct', 'RunPlan_km', 'RunAct_km', 'Hypoxia', 'Treadmill', 'RunMemo', 'SwimAct', 'Clinic', 'Memo'];
+            
+            let csvRows = [];
+            csvRows.push(headers.join(','));
+
+            // 日付順にソートして全データ出力
+            const sortedDates = Object.keys(trainingData).sort();
+            
+            sortedDates.forEach(date => {
+                const d = trainingData[date];
+                // テキスト内のカンマや改行をエスケープ
+                const escapeText = (text) => {
+                    if (!text) return '';
+                    return `"${String(text).replace(/"/g, '""')}"`;
+                };
+
+                const row = [
+                    date,
+                    d.gymPlan || '-',
+                    d.gymAct || '-',
+                    d.runPlan || '',
+                    d.runAct || '',
+                    d.hypoxia ? '1' : '0',
+                    d.treadmill ? '1' : '0',
+                    escapeText(d.runMemo),
+                    d.swim ? '1' : '0',
+                    d.clinic || '-',
+                    escapeText(d.memo)
+                ];
+                csvRows.push(row.join(','));
+            });
+
+            const blob = new Blob([bom, csvRows.join('\n')], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `training_data_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        function importCSV(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const lines = text.split(/\r?\n/);
+                if(lines.length < 2) {
+                    alert('有効なデータが見つかりません。');
+                    return;
+                }
+                
+                let importedCount = 0;
+                
+                for(let i = 1; i < lines.length; i++) {
+                    const line = lines[i];
+                    if(!line.trim()) continue;
+                    
+                    // ダブルクォート内にあるカンマを無視して分割する正規表現
+                    const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
+                    const cols = line.split(regex).map(col => {
+                        // 前後のクォーテーションを削除し、エスケープされたクォートを戻す
+                        let val = col.trim();
+                        if (val.startsWith('"') && val.endsWith('"')) {
+                            val = val.substring(1, val.length - 1).replace(/""/g, '"');
+                        }
+                        return val;
+                    });
+                    
+                    if (cols.length >= 1) {
+                        const date = cols[0];
+                        // YYYY-MM-DDの形式チェック
+                        if(date && date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                            if(!trainingData[date]) trainingData[date] = {};
+                            
+                            if(cols[1] && cols[1] !== '-') trainingData[date].gymPlan = cols[1];
+                            if(cols[2] && cols[2] !== '-') trainingData[date].gymAct = cols[2];
+                            if(cols[3]) trainingData[date].runPlan = cols[3];
+                            if(cols[4]) trainingData[date].runAct = cols[4];
+                            trainingData[date].hypoxia = (cols[5] === '1' || cols[5].toLowerCase() === 'true');
+                            trainingData[date].treadmill = (cols[6] === '1' || cols[6].toLowerCase() === 'true');
+                            if(cols[7]) trainingData[date].runMemo = cols[7];
+                            trainingData[date].swim = (cols[8] === '1' || cols[8].toLowerCase() === 'true');
+                            if(cols[9] && cols[9] !== '-') trainingData[date].clinic = cols[9];
+                            if(cols[10]) trainingData[date].memo = cols[10];
+
+                            importedCount++;
+                        }
+                    }
+                }
+                
+                saveData();
+                renderTable();
+                alert(`${importedCount}件のデータをインポートしました。`);
+                event.target.value = ''; // ファイル選択をリセット
+            };
+            reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
